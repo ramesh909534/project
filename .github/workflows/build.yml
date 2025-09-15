@@ -2,42 +2,50 @@ name: Build KivyMD APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
+      ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
+      ANDROIDAPI: 31
+      ANDROIDMINAPI: 21
+      JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
+      PATH: ${{ github.workspace }}/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
+
     steps:
-      # Step 1: Ensure Git and essential tools are installed
-      - name: Install essential tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git python3-pip python3-dev openjdk-17-jdk unzip zip build-essential autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev wget tar
+    - name: Checkout Repository
+      uses: actions/checkout@v3
 
-      # Step 2: Checkout repository using Git (avoids tar issue)
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0   # full clone to avoid archive download
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip python3-dev git openjdk-17-jdk unzip zip \
+        build-essential autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
+        libffi-dev libssl-dev wget tar
 
-      # Step 3: Install Buildozer and Cython
-      - name: Install Python requirements
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --user buildozer cython
+    - name: Install Buildozer
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --user buildozer cython
 
-      # Step 4: Set environment variables for Android SDK/NDK
-      - name: Set Android environment
-        run: |
-          echo "ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
-          echo "ANDROIDNDK=$HOME/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
-          echo "ANDROIDAPI=31" >> $GITHUB_ENV
-          echo "ANDROIDMINAPI=21" >> $GITHUB_ENV
-          echo "JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64" >> $GITHUB_ENV
-          echo "$HOME/.local/bin:$PATH" >> $GITHUB_PATH
+    - name: Setup Android SDK & NDK
+      run: |
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip -d cmdline-tools
+        mv cmdline-tools/cmdline-tools cmdline-tools/latest
+        rm cmdline-tools.zip
+        # Install stable platform tools & build-tools
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
-      # Step 5: Initialize Buildozer (downloads SDK/NDK)
-      - name: Buildozer init
-        run: |
-          buildozer android debug
+    - name: Build APK
+      run: |
+        python3 -m pip install --user -r requirements.txt || true
+        ~/.local/bin/buildozer android debug
