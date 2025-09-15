@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use Ubuntu with tar/unzip/zip preinstalled
 
     env:
       ANDROIDSDK: ${{ github.workspace }}/.buildozer/android-sdk
@@ -50,13 +50,14 @@ jobs:
 
       - name: Install Android NDK
         run: |
+          mkdir -p $ANDROIDNDK
           wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip -O android-ndk.zip
           unzip -q android-ndk.zip -d $ANDROIDNDK
           rm android-ndk.zip
 
       - name: Build APK with Buildozer
         run: |
-          python3 -m buildozer android debug
+          buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
