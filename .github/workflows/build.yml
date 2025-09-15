@@ -7,15 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Use latest Ubuntu with tar/unzip/zip preinstalled
+    runs-on: ubuntu-latest
 
     env:
-      ANDROIDSDK: ${{ runner.temp }}/android-sdk
-      ANDROIDNDK: ${{ runner.temp }}/android-ndk
+      ANDROIDSDK: /tmp/android-sdk
+      ANDROIDNDK: /tmp/android-ndk
       ANDROIDAPI: 31
       ANDROIDMINAPI: 21
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-      PATH: ${{ runner.temp }}/android-sdk/cmdline-tools/latest/bin:$PATH
+      PATH: /tmp/android-sdk/cmdline-tools/latest/bin:$PATH
 
     steps:
       - name: Checkout repository
