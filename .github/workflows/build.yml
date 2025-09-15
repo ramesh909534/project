@@ -7,15 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Ubuntu has tar, unzip, zip preinstalled
 
     env:
-      ANDROIDSDK: /tmp/android-sdk
-      ANDROIDNDK: /tmp/android-ndk
+      ANDROIDSDK: ${{ github.workspace }}/.buildozer/android-sdk
+      ANDROIDNDK: ${{ github.workspace }}/.buildozer/android-ndk
       ANDROIDAPI: 31
       ANDROIDMINAPI: 21
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-      PATH: /tmp/android-sdk/cmdline-tools/latest/bin:$PATH
+      PATH: ${{ github.workspace }}/.buildozer/android-sdk/cmdline-tools/latest/bin:$PATH
 
     steps:
       - name: Checkout repository
@@ -50,16 +50,16 @@ jobs:
 
       - name: Install Android NDK
         run: |
+          mkdir -p $ANDROIDNDK
           wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip -O android-ndk.zip
           unzip -q android-ndk.zip -d $ANDROIDNDK
           rm android-ndk.zip
 
       - name: Build APK with Buildozer
-        run: |
-          buildozer android debug
+        run: buildozer android debug
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: myapp-debug.apk
           path: bin/*.apk
