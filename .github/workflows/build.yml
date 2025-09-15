@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Ubuntu has tar, unzip, zip preinstalled
+    runs-on: ubuntu-latest  # Ubuntu already has tar/unzip/zip preinstalled
 
     env:
       ANDROIDSDK: ${{ github.workspace }}/.buildozer/android-sdk
@@ -15,17 +15,16 @@ jobs:
       ANDROIDAPI: 31
       ANDROIDMINAPI: 21
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-      PATH: ${{ github.workspace }}/.buildozer/android-sdk/cmdline-tools/latest/bin:$PATH
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip python3-dev git openjdk-17-jdk unzip zip build-essential \
-          autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev wget tar
+          autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev wget
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Install Python dependencies
         run: |
@@ -56,10 +55,12 @@ jobs:
           rm android-ndk.zip
 
       - name: Build APK with Buildozer
-        run: buildozer android debug
+        run: |
+          export PATH=$ANDROIDSDK/cmdline-tools/latest/bin:$PATH
+          buildozer android debug
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  # v4 is the non-deprecated version
         with:
           name: myapp-debug.apk
           path: bin/*.apk
