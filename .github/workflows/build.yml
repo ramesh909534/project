@@ -1,4 +1,4 @@
-name: Build KivyMD APK
+name: Build APK
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Use Ubuntu with tar/unzip/zip preinstalled
+    runs-on: ubuntu-latest
 
     env:
       ANDROIDSDK: ${{ github.workspace }}/.buildozer/android-sdk
@@ -15,17 +15,27 @@ jobs:
       ANDROIDAPI: 31
       ANDROIDMINAPI: 21
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-      PATH: ${{ github.workspace }}/.buildozer/android-sdk/cmdline-tools/latest/bin:${PATH}:${{ github.workspace }}/.local/bin
+      PATH: ${{ github.workspace }}/.buildozer/android-sdk/cmdline-tools/latest/bin:$PATH:${{ github.workspace }}/.local/bin
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Check essential tools
+        run: |
+          echo "Checking tar, unzip, zip..."
+          which tar
+          tar --version
+          which unzip
+          unzip -v
+          which zip
+          zip -v
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip python3-dev git openjdk-17-jdk unzip zip build-essential \
-          autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev wget tar
+          autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev wget
 
       - name: Install Python dependencies
         run: |
@@ -50,14 +60,12 @@ jobs:
 
       - name: Install Android NDK
         run: |
-          mkdir -p $ANDROIDNDK
           wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip -O android-ndk.zip
           unzip -q android-ndk.zip -d $ANDROIDNDK
           rm android-ndk.zip
 
       - name: Build APK with Buildozer
-        run: |
-          buildozer android debug
+        run: buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
