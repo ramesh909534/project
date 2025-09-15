@@ -2,50 +2,64 @@ name: Build KivyMD APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest  # Use latest Ubuntu with tar/unzip/zip preinstalled
 
     env:
-      ANDROID_HOME: ${{ github.workspace }}/.buildozer/android/platform/android-sdk
-      ANDROIDNDK: ${{ github.workspace }}/.buildozer/android/platform/android-ndk-r25b
+      ANDROIDSDK: ${{ runner.temp }}/android-sdk
+      ANDROIDNDK: ${{ runner.temp }}/android-ndk
       ANDROIDAPI: 31
       ANDROIDMINAPI: 21
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-      PATH: ${{ github.workspace }}/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin:$PATH
+      PATH: ${{ runner.temp }}/android-sdk/cmdline-tools/latest/bin:$PATH
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-pip python3-dev git openjdk-17-jdk unzip zip \
-        build-essential autoconf libtool pkg-config zlib1g-dev libncurses5-dev \
-        libffi-dev libssl-dev wget tar
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip python3-dev git openjdk-17-jdk unzip zip build-essential \
+          autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev wget tar
 
-    - name: Install Buildozer
-      run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install --user buildozer cython
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --user cython buildozer
 
-    - name: Setup Android SDK & NDK
-      run: |
-        mkdir -p $ANDROID_HOME/cmdline-tools
-        cd $ANDROID_HOME
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-        unzip cmdline-tools.zip -d cmdline-tools
-        mv cmdline-tools/cmdline-tools cmdline-tools/latest
-        rm cmdline-tools.zip
-        # Install stable platform tools & build-tools
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+      - name: Install Android SDK Command Line Tools
+        run: |
+          mkdir -p $ANDROIDSDK/cmdline-tools
+          cd $ANDROIDSDK/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          rm cmdline-tools.zip
+          mv cmdline-tools latest
 
-    - name: Build APK
-      run: |
-        python3 -m pip install --user -r requirements.txt || true
-        ~/.local/bin/buildozer android debug
+      - name: Accept Android SDK licenses
+        run: yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Install Android SDK Build Tools & Platform
+        run: |
+          $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+
+      - name: Install Android NDK
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip -O android-ndk.zip
+          unzip -q android-ndk.zip -d $ANDROIDNDK
+          rm android-ndk.zip
+
+      - name: Build APK with Buildozer
+        run: |
+          buildozer android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: myapp-debug.apk
+          path: bin/*.apk
